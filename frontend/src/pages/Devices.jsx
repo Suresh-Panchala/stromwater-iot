@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { deviceAPI } from '../services/api';
 import { Plus, Edit2, Trash2, MapPin, Activity, RefreshCw, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const Devices = () => {
   const [devices, setDevices] = useState([]);
@@ -28,35 +27,14 @@ const Devices = () => {
       setError(null);
       const response = await deviceAPI.getAllDevices();
 
-      // Handle response data format
-      let devicesData = response.data;
-      if (devicesData && typeof devicesData === 'object' && !Array.isArray(devicesData)) {
-        if (devicesData.data && Array.isArray(devicesData.data)) {
-          devicesData = devicesData.data;
-        } else {
-          devicesData = [];
-        }
-      }
-      if (!Array.isArray(devicesData)) {
-        devicesData = [];
-      }
-
+      // Safely extract array from response
+      const devicesData = Array.isArray(response.data) ? response.data : [];
       setDevices(devicesData);
-    } catch (error) {
-      console.error('Load devices error:', error);
-
-      // Check if it's a network error (backend not running)
-      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        setError('Backend server is not running. Please start the backend first.');
-        toast.error('Backend server is not running');
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        setError('You do not have permission to view devices. Please login as admin.');
-        toast.error('Admin access required');
-      } else {
-        setError(error.response?.data?.error || 'Failed to load devices. Please try again.');
-        toast.error('Failed to load devices');
-      }
-
+    } catch (err) {
+      console.error('Load devices error:', err);
+      const errorMsg = err?.response?.data?.error || 'Failed to load devices';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setDevices([]);
     } finally {
       setLoading(false);
@@ -68,11 +46,9 @@ const Devices = () => {
 
     try {
       if (editingDevice) {
-        // Update existing device
         await deviceAPI.updateDevice(editingDevice.device_id, formData);
         toast.success('Device updated successfully');
       } else {
-        // Create new device
         await deviceAPI.createDevice(formData);
         toast.success('Device created successfully');
       }
@@ -87,9 +63,9 @@ const Devices = () => {
         longitude: '',
       });
       loadDevices();
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save device');
-      console.error(error);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to save device');
+      console.error(err);
     }
   };
 
@@ -106,7 +82,7 @@ const Devices = () => {
   };
 
   const handleDelete = async (device) => {
-    if (!confirm(`Are you sure you want to delete device "${device.device_name}"?`)) {
+    if (!window.confirm(`Are you sure you want to delete device "${device.device_name}"?`)) {
       return;
     }
 
@@ -114,9 +90,9 @@ const Devices = () => {
       await deviceAPI.deleteDevice(device.device_id);
       toast.success('Device deleted successfully');
       loadDevices();
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to delete device');
-      console.error(error);
+      console.error(err);
     }
   };
 
@@ -182,21 +158,11 @@ const Devices = () => {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
-                Connection Error
+                Error
               </h3>
               <p className="text-red-700 dark:text-red-400 mb-4">
                 {error}
               </p>
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-3">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                  To start the backend server:
-                </p>
-                <pre className="text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-3 rounded overflow-x-auto">
-{`1. Open Command Prompt
-2. cd C:\\Users\\UniqueEmbedded\\Desktop\\IIOT\\SHARJ\\backend
-3. npm start`}
-                </pre>
-              </div>
               <button
                 onClick={loadDevices}
                 className="btn btn-primary flex items-center gap-2"
@@ -225,11 +191,8 @@ const Devices = () => {
           </div>
         ) : (
           devices.map((device) => (
-            <motion.div
+            <div
               key={device.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
               className={`card relative ${
                 device.is_active
                   ? 'border-l-4 border-green-500'
@@ -264,16 +227,6 @@ const Devices = () => {
                 <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
                   <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <span>{device.location}</span>
-                </div>
-              )}
-
-              {/* Coordinates */}
-              {(device.latitude || device.longitude) && (
-                <div className="text-xs text-gray-500 dark:text-gray-500 mb-3">
-                  <span>
-                    Lat: {device.latitude?.toFixed(6) || 'N/A'}, Lon:{' '}
-                    {device.longitude?.toFixed(6) || 'N/A'}
-                  </span>
                 </div>
               )}
 
@@ -312,158 +265,148 @@ const Devices = () => {
                   Delete
                 </button>
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
 
       {/* Add/Edit Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-              onClick={() => setShowModal(false)}
-            />
+      {showModal && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setShowModal(false)}
+          />
 
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            >
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {editingDevice ? 'Edit Device' : 'Add New Device'}
-                  </h2>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {editingDevice ? 'Edit Device' : 'Add New Device'}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                {/* Device ID */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Device ID *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.device_id}
+                    onChange={(e) =>
+                      setFormData({ ...formData, device_id: e.target.value })
+                    }
+                    className="input"
+                    placeholder="e.g., StromWater_Device_3"
+                    required
+                    disabled={!!editingDevice}
+                  />
+                  {editingDevice && (
+                    <p className="text-xs text-gray-500 mt-1">Device ID cannot be changed</p>
+                  )}
                 </div>
 
-                {/* Modal Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                  {/* Device ID */}
+                {/* Device Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Device Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.device_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, device_name: e.target.value })
+                    }
+                    className="input"
+                    placeholder="e.g., Abu Dhabi Pump Station"
+                    required
+                  />
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) =>
+                      setFormData({ ...formData, location: e.target.value })
+                    }
+                    className="input"
+                    placeholder="e.g., Abu Dhabi, UAE"
+                  />
+                </div>
+
+                {/* Coordinates */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Device ID *
+                      Latitude
                     </label>
                     <input
-                      type="text"
-                      value={formData.device_id}
+                      type="number"
+                      step="any"
+                      value={formData.latitude}
                       onChange={(e) =>
-                        setFormData({ ...formData, device_id: e.target.value })
+                        setFormData({ ...formData, latitude: e.target.value })
                       }
                       className="input"
-                      placeholder="e.g., StromWater_Device_3"
-                      required
-                      disabled={!!editingDevice}
+                      placeholder="25.276987"
                     />
-                    {editingDevice && (
-                      <p className="text-xs text-gray-500 mt-1">Device ID cannot be changed</p>
-                    )}
                   </div>
-
-                  {/* Device Name */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Device Name *
+                      Longitude
                     </label>
                     <input
-                      type="text"
-                      value={formData.device_name}
+                      type="number"
+                      step="any"
+                      value={formData.longitude}
                       onChange={(e) =>
-                        setFormData({ ...formData, device_name: e.target.value })
+                        setFormData({ ...formData, longitude: e.target.value })
                       }
                       className="input"
-                      placeholder="e.g., Abu Dhabi Pump Station"
-                      required
+                      placeholder="55.296249"
                     />
                   </div>
+                </div>
 
-                  {/* Location */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) =>
-                        setFormData({ ...formData, location: e.target.value })
-                      }
-                      className="input"
-                      placeholder="e.g., Abu Dhabi, UAE"
-                    />
-                  </div>
-
-                  {/* Coordinates */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Latitude
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={formData.latitude}
-                        onChange={(e) =>
-                          setFormData({ ...formData, latitude: e.target.value })
-                        }
-                        className="input"
-                        placeholder="25.276987"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Longitude
-                      </label>
-                      <input
-                        type="number"
-                        step="any"
-                        value={formData.longitude}
-                        onChange={(e) =>
-                          setFormData({ ...formData, longitude: e.target.value })
-                        }
-                        className="input"
-                        placeholder="55.296249"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Submit Buttons */}
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="flex-1 btn btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 btn btn-primary flex items-center justify-center gap-2"
-                    >
-                      <Check className="w-4 h-4" />
-                      {editingDevice ? 'Update Device' : 'Create Device'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                {/* Submit Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    {editingDevice ? 'Update Device' : 'Create Device'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

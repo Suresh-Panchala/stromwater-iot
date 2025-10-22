@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { deviceAPI } from '../services/api';
 import { format } from 'date-fns';
@@ -7,54 +7,59 @@ const PowerChart = ({ deviceId, title, dataKey }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, [deviceId, dataKey]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const response = await deviceAPI.getHistoricalData(deviceId, 24);
-      const formattedData = response.data.map((item) => ({
+
+      // Safely extract array from response
+      const rawData = Array.isArray(response.data) ? response.data : [];
+
+      const formattedData = rawData.map((item) => ({
         timestamp: format(new Date(item.timestamp), 'HH:mm'),
         ...formatDataByKey(item, dataKey),
       }));
       setData(formattedData);
     } catch (error) {
       console.error('Failed to load chart data:', error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId, dataKey]);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const formatDataByKey = (item, key) => {
     if (key === 'voltage') {
       return {
-        'Pump 1 R': item.vrms_1_r,
-        'Pump 1 Y': item.vrms_1_y,
-        'Pump 1 B': item.vrms_1_b,
-        'Pump 2 R': item.vrms_2_r,
-        'Pump 2 Y': item.vrms_2_y,
-        'Pump 2 B': item.vrms_2_b,
+        'Pump 1 R': item.vrms_1_r || 0,
+        'Pump 1 Y': item.vrms_1_y || 0,
+        'Pump 1 B': item.vrms_1_b || 0,
+        'Pump 2 R': item.vrms_2_r || 0,
+        'Pump 2 Y': item.vrms_2_y || 0,
+        'Pump 2 B': item.vrms_2_b || 0,
       };
     } else if (key === 'current') {
       return {
-        'Pump 1 R': item.irms_1_r,
-        'Pump 1 Y': item.irms_1_y,
-        'Pump 1 B': item.irms_1_b,
-        'Pump 2 R': item.irms_2_r,
-        'Pump 2 Y': item.irms_2_y,
-        'Pump 2 B': item.irms_2_b,
+        'Pump 1 R': item.irms_1_r || 0,
+        'Pump 1 Y': item.irms_1_y || 0,
+        'Pump 1 B': item.irms_1_b || 0,
+        'Pump 2 R': item.irms_2_r || 0,
+        'Pump 2 Y': item.irms_2_y || 0,
+        'Pump 2 B': item.irms_2_b || 0,
       };
     } else if (key === 'power') {
       return {
-        'Pump 1 R': item.power_1_r,
-        'Pump 1 Y': item.power_1_y,
-        'Pump 1 B': item.power_1_b,
-        'Pump 2 R': item.power_2_r,
-        'Pump 2 Y': item.power_2_y,
-        'Pump 2 B': item.power_2_b,
+        'Pump 1 R': item.power_1_r || 0,
+        'Pump 1 Y': item.power_1_y || 0,
+        'Pump 1 B': item.power_1_b || 0,
+        'Pump 2 R': item.power_2_r || 0,
+        'Pump 2 Y': item.power_2_y || 0,
+        'Pump 2 B': item.power_2_b || 0,
       };
     }
     return {};
@@ -75,6 +80,14 @@ const PowerChart = ({ deviceId, title, dataKey }) => {
     return (
       <div className="card h-80 flex items-center justify-center">
         <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="card h-80 flex items-center justify-center">
+        <p className="text-gray-500 dark:text-gray-400">No data available</p>
       </div>
     );
   }

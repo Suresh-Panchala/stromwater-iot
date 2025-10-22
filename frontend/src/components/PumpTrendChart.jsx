@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { deviceAPI } from '../services/api';
 import { Activity } from 'lucide-react';
@@ -7,17 +7,16 @@ const PumpTrendChart = ({ deviceId }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPumpTrends();
-  }, [deviceId]);
-
-  const loadPumpTrends = async () => {
+  const loadPumpTrends = useCallback(async () => {
     try {
       setLoading(true);
       const response = await deviceAPI.getHistoricalData(deviceId, 24);
 
+      // Safely extract array from response
+      const rawData = Array.isArray(response.data) ? response.data : [];
+
       // Transform data for chart
-      const chartData = response.data.map(item => ({
+      const chartData = rawData.map(item => ({
         time: new Date(item.timestamp).toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit'
@@ -29,15 +28,28 @@ const PumpTrendChart = ({ deviceId }) => {
       setData(chartData.reverse().slice(-50)); // Last 50 readings
     } catch (error) {
       console.error('Failed to load pump trends:', error);
+      setData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [deviceId]);
+
+  useEffect(() => {
+    loadPumpTrends();
+  }, [loadPumpTrends]);
 
   if (loading) {
     return (
       <div className="card flex items-center justify-center h-64">
         <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="card flex items-center justify-center h-64">
+        <p className="text-gray-500 dark:text-gray-400">No pump data available</p>
       </div>
     );
   }
