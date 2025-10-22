@@ -21,10 +21,34 @@ const Alerts = () => {
       if (filter === 'acknowledged') params.acknowledged = true;
 
       const response = await alertAPI.getAlerts(params);
-      setAlerts(response.data);
+
+      // Handle different response formats
+      let alertData = response.data;
+
+      // If data is an object with a data property, extract it
+      if (alertData && typeof alertData === 'object' && !Array.isArray(alertData)) {
+        if (alertData.data && Array.isArray(alertData.data)) {
+          alertData = alertData.data;
+        } else if (alertData.alerts && Array.isArray(alertData.alerts)) {
+          alertData = alertData.alerts;
+        } else {
+          // If it's an object but not an array, convert to empty array
+          console.warn('Unexpected alerts data format:', alertData);
+          alertData = [];
+        }
+      }
+
+      // Ensure alertData is an array
+      if (!Array.isArray(alertData)) {
+        console.warn('Alerts data is not an array:', alertData);
+        alertData = [];
+      }
+
+      setAlerts(alertData);
     } catch (error) {
       toast.error('Failed to load alerts');
-      console.error(error);
+      console.error('Alerts load error:', error);
+      setAlerts([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
