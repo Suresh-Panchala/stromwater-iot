@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   Activity,
+  BarChart3,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,11 +26,12 @@ const Layout = () => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Alerts', href: '/alerts', icon: Bell },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   if (isAdmin) {
-    navigation.splice(2, 0, { name: 'Users', href: '/users', icon: Users });
+    navigation.splice(3, 0, { name: 'Users', href: '/users', icon: Users });
   }
 
   return (
