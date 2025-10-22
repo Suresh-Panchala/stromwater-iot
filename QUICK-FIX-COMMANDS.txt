@@ -1,0 +1,166 @@
+===============================================
+QUICK FIX - Copy and Paste These Commands
+===============================================
+
+IMPORTANT: Run these commands on your VPS via AWS Console
+
+===============================================
+COMMAND 1: Create Alerts Table & Add Sample Data
+===============================================
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+-- Create alerts table
+CREATE TABLE IF NOT EXISTS alerts (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(100) NOT NULL,
+  alert_type VARCHAR(50) NOT NULL,
+  alert_message TEXT,
+  severity VARCHAR(20) DEFAULT 'warning',
+  timestamp TIMESTAMP NOT NULL,
+  acknowledged BOOLEAN DEFAULT false,
+  acknowledged_by INTEGER REFERENCES users(id),
+  acknowledged_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_alerts_device_id ON alerts(device_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp DESC);
+
+-- Insert sample alerts
+INSERT INTO alerts (device_id, alert_type, alert_message, severity, timestamp, acknowledged)
+VALUES
+  ('StromWater_Device_1', 'High Level Alert', 'Water level exceeded threshold', 'warning', NOW() - INTERVAL '2 hours', false),
+  ('StromWater_Device_1', 'Pump Protection', 'Pump 1 protection triggered', 'critical', NOW() - INTERVAL '1 hour', false),
+  ('StromWater_Device_2', 'Dry Run Alert', 'Dry run condition detected', 'warning', NOW() - INTERVAL '30 minutes', false);
+
+-- Grant permissions
+GRANT ALL PRIVILEGES ON TABLE alerts TO stromwater_user;
+GRANT USAGE, SELECT ON SEQUENCE alerts_id_seq TO stromwater_user;
+
+-- Verify
+SELECT 'SUCCESS: Alerts table created!' as message;
+SELECT COUNT(*) as total_alerts FROM alerts;
+
+EOF
+
+
+===============================================
+COMMAND 2: Add Test Data for Analytics (Optional)
+===============================================
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+-- Add 100 test records for Analytics page
+INSERT INTO device_data (device_id, hydrostatic_value, vrms_1_r, vrms_1_y, vrms_1_b, irms_1_r, irms_1_y, irms_1_b, vrms_2_r, vrms_2_y, vrms_2_b, irms_2_r, irms_2_y, irms_2_b, timestamp)
+SELECT
+  'StromWater_Device_' || (CASE WHEN random() < 0.5 THEN '1' ELSE '2' END),
+  (random() * 10 + 5)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  NOW() - (random() * INTERVAL '7 days')
+FROM generate_series(1, 100);
+
+-- Verify
+SELECT 'SUCCESS: Test data added!' as message;
+SELECT COUNT(*) as total_records FROM device_data;
+
+EOF
+
+
+===============================================
+COMMAND 3: Fix All Database Permissions
+===============================================
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+GRANT ALL PRIVILEGES ON DATABASE stromwater_db TO stromwater_user;
+GRANT ALL ON SCHEMA public TO stromwater_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO stromwater_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO stromwater_user;
+
+SELECT 'SUCCESS: Permissions updated!' as message;
+
+EOF
+
+
+===============================================
+COMMAND 4: Restart Backend Service
+===============================================
+
+pm2 restart stromwater-backend
+
+
+===============================================
+COMMAND 5: Check if Everything Works
+===============================================
+
+# Check backend status
+pm2 status
+
+# Check backend logs (look for errors)
+pm2 logs stromwater-backend --lines 30
+
+# Check database
+sudo -u postgres psql -d stromwater_db -c "SELECT COUNT(*) FROM alerts;"
+sudo -u postgres psql -d stromwater_db -c "SELECT COUNT(*) FROM device_data;"
+
+
+===============================================
+TEST IN BROWSER
+===============================================
+
+After running the commands above, test these URLs:
+
+1. Alerts Page:
+   http://43.205.194.142/alerts
+
+   Expected: Shows 3 alerts with details
+
+2. Analytics Page:
+   http://43.205.194.142/analytics
+
+   Expected: Shows device statistics and charts
+
+
+===============================================
+TROUBLESHOOTING
+===============================================
+
+If still showing 500 error:
+
+1. Check backend logs for specific error:
+   pm2 logs stromwater-backend --lines 100 | grep -i error
+
+2. Verify tables exist:
+   sudo -u postgres psql -d stromwater_db -c "\dt"
+
+3. Test database connection:
+   sudo -u postgres psql -d stromwater_db -c "SELECT version();"
+
+4. Restart all services:
+   pm2 restart all
+   sudo systemctl restart nginx
+
+5. Check browser console (F12) for detailed error message
+
+
+===============================================
+NEED MORE HELP?
+===============================================
+
+Send me:
+1. Output of: pm2 logs stromwater-backend --lines 50
+2. Browser console error (full error object)
+3. Output of: sudo -u postgres psql -d stromwater_db -c "\dt"

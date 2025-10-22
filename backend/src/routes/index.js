@@ -41,4 +41,10 @@ router.post('/users', authorize('admin'), userController.createUser);
 router.put('/users/:userId', authorize('admin'), userController.updateUser);
 router.delete('/users/:userId', authorize('admin'), userController.deleteUser);
 
+// Admin device management routes
+router.get('/admin/devices', authorize('admin'), deviceController.getAllDevices);
+router.post('/admin/devices', authorize('admin'), deviceController.createDevice);
+router.put('/admin/devices/:deviceId', authorize('admin'), deviceController.updateDevice);
+router.delete('/admin/devices/:deviceId', authorize('admin'), deviceController.deleteDevice);
+
 module.exports = router;

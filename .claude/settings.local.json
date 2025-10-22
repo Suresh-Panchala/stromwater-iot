@@ -12,7 +12,11 @@
       "Bash(curl:*)",
       "Bash(cmd /c \"set PGPASSWORD=root&& psql -U postgres -d stromwater_db -c \"\"\\d device_data\"\"\")",
       "Bash(node:*)",
-      "Bash(cmd /c \"set PGPASSWORD=root&& psql -U postgres -d stromwater_db -c \"\"SELECT id, username, email, role, is_active FROM users;\"\"\")"
+      "Bash(cmd /c \"set PGPASSWORD=root&& psql -U postgres -d stromwater_db -c \"\"SELECT id, username, email, role, is_active FROM users;\"\"\")",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

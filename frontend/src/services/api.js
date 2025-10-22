@@ -84,6 +84,11 @@ export const deviceAPI = {
   getDeviceStats: (deviceId, hours = 24) => api.get(`/devices/${deviceId}/stats`, { params: { hours } }),
   exportCSV: (deviceId, params) => api.get(`/devices/${deviceId}/export/csv`, { params, responseType: 'blob' }),
   exportPDF: (deviceId, params) => api.get(`/devices/${deviceId}/export/pdf`, { params, responseType: 'blob' }),
+  // Admin device management
+  getAllDevices: () => api.get('/admin/devices'),
+  createDevice: (deviceData) => api.post('/admin/devices', deviceData),
+  updateDevice: (deviceId, deviceData) => api.put(`/admin/devices/${deviceId}`, deviceData),
+  deleteDevice: (deviceId) => api.delete(`/admin/devices/${deviceId}`),
 };
 
 // Alert API

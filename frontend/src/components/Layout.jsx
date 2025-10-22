@@ -14,6 +14,7 @@ import {
   Moon,
   Activity,
   BarChart3,
+  Cpu,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,7 +32,8 @@ const Layout = () => {
   ];
 
   if (isAdmin) {
-    navigation.splice(3, 0, { name: 'Users', href: '/users', icon: Users });
+    navigation.splice(3, 0, { name: 'Devices', href: '/devices', icon: Cpu });
+    navigation.splice(4, 0, { name: 'Users', href: '/users', icon: Users });
   }
 
   return (

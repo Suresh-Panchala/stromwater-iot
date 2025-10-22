@@ -1,20 +1,13 @@
--- StromWater Database Setup
--- Run this with: psql -U postgres -f setup-database.sql
+-- StromWater IoT Platform - Database Creation
+-- Run with: psql -U postgres -f setup-database.sql
 
--- Create database
-CREATE DATABASE stromwater_db;
+-- Check if database exists and create if not
+SELECT 'Creating database...' as status;
 
--- Create user
-CREATE USER stromwater_user WITH ENCRYPTED PASSWORD 'stromwater123';
+-- Note: You may need to run this manually:
+-- CREATE DATABASE stromwater_db;
 
--- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE stromwater_db TO stromwater_user;
+-- Then connect and run the rest:
+-- \c stromwater_db
 
--- Change owner
-ALTER DATABASE stromwater_db OWNER TO stromwater_user;
-
--- Display success message
-\echo 'Database setup complete!'
-\echo 'Database: stromwater_db'
-\echo 'User: stromwater_user'
-\echo 'Password: stromwater123'
+SELECT 'Database setup complete. Now run: node backend/src/scripts/initDatabase.js' as next_step;

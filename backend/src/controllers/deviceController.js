@@ -327,7 +327,7 @@ exports.exportDataPDF = async (req, res) => {
 
 exports.getDeviceStats = async (req, res) => {
   try {
-    const { deviceId } = req.params;
+    const { deviceId} = req.params;
     const { hours = 24 } = req.query;
 
     const result = await pool.query(
@@ -351,5 +351,156 @@ exports.getDeviceStats = async (req, res) => {
   } catch (error) {
     console.error('Get device stats error:', error);
     res.status(500).json({ error: 'Failed to fetch device stats' });
+  }
+};
+
+// Create new device
+exports.createDevice = async (req, res) => {
+  try {
+    const { device_id, device_name, location, latitude, longitude } = req.body;
+
+    // Validate required fields
+    if (!device_id || !device_name) {
+      return res.status(400).json({ error: 'Device ID and name are required' });
+    }
+
+    // Check if device already exists
+    const existing = await pool.query(
+      'SELECT id FROM devices WHERE device_id = $1',
+      [device_id]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Device ID already exists' });
+    }
+
+    // Insert new device
+    const result = await pool.query(
+      `INSERT INTO devices (device_id, device_name, location, latitude, longitude, is_active, created_at)
+       VALUES ($1, $2, $3, $4, $5, true, NOW())
+       RETURNING *`,
+      [device_id, device_name, location, latitude || null, longitude || null]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create device error:', error);
+    res.status(500).json({ error: 'Failed to create device' });
+  }
+};
+
+// Update device
+exports.updateDevice = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const { device_name, location, latitude, longitude, is_active } = req.body;
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (device_name !== undefined) {
+      updates.push(`device_name = $${paramCount}`);
+      values.push(device_name);
+      paramCount++;
+    }
+
+    if (location !== undefined) {
+      updates.push(`location = $${paramCount}`);
+      values.push(location);
+      paramCount++;
+    }
+
+    if (latitude !== undefined) {
+      updates.push(`latitude = $${paramCount}`);
+      values.push(latitude);
+      paramCount++;
+    }
+
+    if (longitude !== undefined) {
+      updates.push(`longitude = $${paramCount}`);
+      values.push(longitude);
+      paramCount++;
+    }
+
+    if (is_active !== undefined) {
+      updates.push(`is_active = $${paramCount}`);
+      values.push(is_active);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(deviceId);
+
+    const result = await pool.query(
+      `UPDATE devices
+       SET ${updates.join(', ')}
+       WHERE device_id = $${paramCount}
+       RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update device error:', error);
+    res.status(500).json({ error: 'Failed to update device' });
+  }
+};
+
+// Delete device (soft delete)
+exports.deleteDevice = async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    const result = await pool.query(
+      `UPDATE devices
+       SET is_active = false
+       WHERE device_id = $1
+       RETURNING *`,
+      [deviceId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    res.json({ message: 'Device deleted successfully', device: result.rows[0] });
+  } catch (error) {
+    console.error('Delete device error:', error);
+    res.status(500).json({ error: 'Failed to delete device' });
+  }
+};
+
+// Get all devices including inactive (admin only)
+exports.getAllDevices = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT d.*,
+             dd.timestamp as last_data_timestamp,
+             dd.hydrostatic_value as last_hydrostatic_value,
+             (SELECT COUNT(*) FROM device_data WHERE device_id = d.device_id) as total_data_count
+      FROM devices d
+      LEFT JOIN LATERAL (
+        SELECT timestamp, hydrostatic_value
+        FROM device_data
+        WHERE device_id = d.device_id
+        ORDER BY timestamp DESC
+        LIMIT 1
+      ) dd ON true
+      ORDER BY d.created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get all devices error:', error);
+    res.status(500).json({ error: 'Failed to fetch devices' });
   }
 };

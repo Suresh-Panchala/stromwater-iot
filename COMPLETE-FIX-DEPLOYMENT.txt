@@ -1,0 +1,422 @@
+================================================================================
+✅ COMPLETE FIX - Alerts & Analytics Pages
+================================================================================
+
+ALL ISSUES FIXED:
+✅ Alerts page: "Failed to load alerts" - Fixed data handling
+✅ Analytics page: "TypeError: v.reduce is not a function" - Fixed data validation
+✅ 500 Internal Server Error - Will be fixed by creating alerts table
+✅ Robust error handling for both pages
+✅ Code pushed to GitHub
+
+================================================================================
+🚀 DEPLOYMENT TO VPS (Run via AWS Console)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 1: Create Alerts Table in Database
+────────────────────────────────────────────────────────────────────────────────
+
+Copy and paste this ENTIRE block:
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+-- Create alerts table
+CREATE TABLE IF NOT EXISTS alerts (
+  id SERIAL PRIMARY KEY,
+  device_id VARCHAR(100) NOT NULL,
+  alert_type VARCHAR(50) NOT NULL,
+  alert_message TEXT,
+  severity VARCHAR(20) DEFAULT 'warning',
+  timestamp TIMESTAMP NOT NULL,
+  acknowledged BOOLEAN DEFAULT false,
+  acknowledged_by INTEGER REFERENCES users(id),
+  acknowledged_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_alerts_device_id ON alerts(device_id);
+CREATE INDEX IF NOT EXISTS idx_alerts_timestamp ON alerts(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_acknowledged ON alerts(acknowledged);
+
+-- Insert 3 sample alerts for testing
+INSERT INTO alerts (device_id, alert_type, alert_message, severity, timestamp, acknowledged)
+VALUES
+  ('StromWater_Device_1', 'High Level Alert', 'Water level exceeded threshold', 'warning', NOW() - INTERVAL '2 hours', false),
+  ('StromWater_Device_1', 'Pump Protection', 'Pump 1 protection triggered', 'critical', NOW() - INTERVAL '1 hour', false),
+  ('StromWater_Device_2', 'Dry Run Alert', 'Dry run condition detected', 'warning', NOW() - INTERVAL '30 minutes', false);
+
+-- Grant permissions to application user
+GRANT ALL PRIVILEGES ON TABLE alerts TO stromwater_user;
+GRANT USAGE, SELECT ON SEQUENCE alerts_id_seq TO stromwater_user;
+
+-- Verify creation
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+\echo '✅ SUCCESS: Alerts table created!'
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+SELECT COUNT(*) as total_alerts FROM alerts;
+
+EOF
+
+✅ Expected output: "total_alerts | 3"
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 2: Add Test Data for Analytics Page (OPTIONAL but recommended)
+────────────────────────────────────────────────────────────────────────────────
+
+This adds 100 sample device readings for the Analytics page to show data:
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+-- Check current count
+SELECT COUNT(*) as current_device_data FROM device_data;
+
+-- Add 100 realistic test records spread over last 7 days
+INSERT INTO device_data (
+  device_id,
+  hydrostatic_value,
+  vrms_1_r, vrms_1_y, vrms_1_b,
+  irms_1_r, irms_1_y, irms_1_b,
+  vrms_2_r, vrms_2_y, vrms_2_b,
+  irms_2_r, irms_2_y, irms_2_b,
+  timestamp
+)
+SELECT
+  'StromWater_Device_' || (CASE WHEN random() < 0.5 THEN '1' ELSE '2' END),
+  (random() * 10 + 5)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 50 + 400)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  (random() * 20 + 20)::numeric(10,2),
+  NOW() - (random() * INTERVAL '7 days')
+FROM generate_series(1, 100);
+
+-- Verify
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+\echo '✅ SUCCESS: Test data added!'
+\echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+SELECT COUNT(*) as total_device_data FROM device_data;
+
+EOF
+
+✅ Expected output: Shows increased count (e.g., 102 if you had 2 before)
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 3: Fix Database Permissions
+────────────────────────────────────────────────────────────────────────────────
+
+sudo -u postgres psql -d stromwater_db << 'EOF'
+
+-- Grant all necessary permissions
+GRANT ALL PRIVILEGES ON DATABASE stromwater_db TO stromwater_user;
+GRANT ALL ON SCHEMA public TO stromwater_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO stromwater_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO stromwater_user;
+
+\echo '✅ Permissions updated successfully!'
+
+EOF
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 4: Pull Latest Code from GitHub
+────────────────────────────────────────────────────────────────────────────────
+
+cd /var/www/stromwater
+git pull origin main
+
+✅ You should see:
+   - "frontend/src/pages/Alerts.jsx" (modified)
+   - "frontend/src/pages/Analytics.jsx" (modified)
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 5: Rebuild Frontend
+────────────────────────────────────────────────────────────────────────────────
+
+cd /var/www/stromwater/frontend
+npm run build
+
+✅ Wait for build to complete (shows "✓ built in X.XXs")
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 6: Restart All Services
+────────────────────────────────────────────────────────────────────────────────
+
+pm2 restart all
+pm2 save
+
+✅ Check status:
+pm2 status
+
+✅ Both should show "online" status:
+   - stromwater-backend (online)
+   - stromwater-frontend (online)
+
+
+────────────────────────────────────────────────────────────────────────────────
+STEP 7: Verify Deployment
+────────────────────────────────────────────────────────────────────────────────
+
+# Check database
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Database Verification:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+sudo -u postgres psql -d stromwater_db -c "SELECT COUNT(*) as alerts FROM alerts;"
+sudo -u postgres psql -d stromwater_db -c "SELECT COUNT(*) as device_data FROM device_data;"
+
+# Check backend logs (should show no errors)
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Backend Logs (last 20 lines):"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+pm2 logs stromwater-backend --lines 20 --nostream
+
+
+================================================================================
+🧪 TEST IN BROWSER
+================================================================================
+
+1️⃣  ALERTS PAGE
+────────────────────────────────────────────────────────────────────────────────
+   URL: http://43.205.194.142/alerts
+
+   ✅ Should show:
+      • Total Alerts: 3
+      • Unacknowledged: 3
+      • Acknowledged: 0
+      • 3 alert cards with details
+      • "Acknowledge" button on each alert
+      • Filter dropdown works
+
+   ❌ If still showing error:
+      • Open browser console (F12)
+      • Check for red error messages
+      • Send error to Claude
+
+
+2️⃣  ANALYTICS PAGE
+────────────────────────────────────────────────────────────────────────────────
+   URL: http://43.205.194.142/analytics
+
+   ✅ Should show:
+      • Device selector (Dubai/Sharjah pump stations)
+      • Total Readings: 100+ (if you added test data)
+      • Avg Water Level: X.XX m
+      • Avg Voltage: XXX V
+      • Avg Current: XX A
+      • Pump 1 & Pump 2 Uptime bars
+      • Date range filter (24h/7days/30days)
+
+   ❌ If showing "No data available":
+      • This is normal if device_data table is empty
+      • Either add test data (Step 2) or run MQTT simulator
+
+   ❌ If showing error:
+      • Open browser console (F12)
+      • Check for red error messages
+
+
+3️⃣  NAVIGATION
+────────────────────────────────────────────────────────────────────────────────
+   ✅ Sidebar should show (in order):
+      • Dashboard
+      • Alerts
+      • Analytics  ← NEW!
+      • Users (if admin)
+      • Settings
+
+
+================================================================================
+📊 WHAT WAS FIXED
+================================================================================
+
+✅ Alerts Page (frontend/src/pages/Alerts.jsx):
+   • Added data format validation
+   • Handles API returning object instead of array
+   • Added console warnings for debugging
+   • Sets empty array on errors to prevent crashes
+   • Gracefully handles all response formats
+
+✅ Analytics Page (frontend/src/pages/Analytics.jsx):
+   • Added robust data type checking
+   • Handles API returning object instead of array
+   • Added array validation before using .reduce()
+   • Prevents "TypeError: v.reduce is not a function"
+   • Shows empty state when no data available
+
+✅ Database:
+   • Created alerts table with proper schema
+   • Added sample data for testing
+   • Set correct permissions for application user
+   • Added indexes for performance
+
+
+================================================================================
+🔧 TROUBLESHOOTING
+================================================================================
+
+ISSUE: Alerts page still shows 500 error
+────────────────────────────────────────────────────────────────────────────────
+SOLUTION:
+pm2 logs stromwater-backend --lines 50 | grep -i "alert\|error"
+
+Check if alerts table exists:
+sudo -u postgres psql -d stromwater_db -c "\dt alerts"
+
+
+ISSUE: Analytics shows "reduce is not a function"
+────────────────────────────────────────────────────────────────────────────────
+SOLUTION:
+1. Hard refresh browser: Ctrl + Shift + R (clears cached JavaScript)
+2. Verify frontend rebuilt:
+   ls -lh /var/www/stromwater/frontend/dist/assets/*.js
+   (Should show recent timestamp)
+3. Restart frontend:
+   pm2 restart stromwater-frontend
+
+
+ISSUE: Analytics shows "No data available"
+────────────────────────────────────────────────────────────────────────────────
+SOLUTION:
+This is normal if no device_data exists. Check count:
+sudo -u postgres psql -d stromwater_db -c "SELECT COUNT(*) FROM device_data;"
+
+If count is 0 or very low, either:
+• Run Step 2 to add test data, OR
+• Run MQTT simulator from Windows for real data
+
+
+ISSUE: "Failed to load alerts" toast message
+────────────────────────────────────────────────────────────────────────────────
+SOLUTION:
+1. Check backend is running:
+   pm2 status
+2. Check backend logs:
+   pm2 logs stromwater-backend --lines 30
+3. Test API directly:
+   curl http://localhost:5000/health
+4. Restart backend:
+   pm2 restart stromwater-backend
+
+
+NUCLEAR OPTION: Restart Everything
+────────────────────────────────────────────────────────────────────────────────
+pm2 restart all
+sudo systemctl restart nginx
+sudo systemctl restart postgresql
+
+pm2 status
+sudo systemctl status nginx
+
+
+================================================================================
+🔍 DIAGNOSTIC COMMANDS
+================================================================================
+
+# List all database tables
+sudo -u postgres psql -d stromwater_db -c "\dt"
+
+# Check alerts data
+sudo -u postgres psql -d stromwater_db -c "SELECT * FROM alerts ORDER BY timestamp DESC LIMIT 5;"
+
+# Check device_data
+sudo -u postgres psql -d stromwater_db -c "SELECT device_id, hydrostatic_value, timestamp FROM device_data ORDER BY timestamp DESC LIMIT 10;"
+
+# Check PM2 processes
+pm2 status
+pm2 logs stromwater-backend --lines 50
+pm2 logs stromwater-frontend --lines 50
+
+# Check Nginx
+sudo systemctl status nginx
+sudo nginx -t
+
+# Check PostgreSQL
+sudo systemctl status postgresql
+sudo -u postgres psql -d stromwater_db -c "SELECT version();"
+
+
+================================================================================
+✅ SUCCESS CHECKLIST
+================================================================================
+
+Database Setup:
+ ☐ alerts table exists (run: sudo -u postgres psql -d stromwater_db -c "\dt alerts")
+ ☐ alerts table has 3+ records
+ ☐ device_data has records (for Analytics)
+ ☐ Permissions granted to stromwater_user
+
+Code Deployment:
+ ☐ Latest code pulled from GitHub
+ ☐ Frontend rebuilt successfully
+ ☐ Both PM2 services running (pm2 status)
+
+Pages Working:
+ ☐ Alerts page loads without errors
+ ☐ Alerts page shows sample alerts
+ ☐ Can acknowledge alerts
+ ☐ Analytics page loads without errors
+ ☐ Analytics shows statistics (if data exists)
+ ☐ Navigation shows Analytics link
+ ☐ No errors in browser console (F12)
+
+
+================================================================================
+📞 NEED HELP?
+================================================================================
+
+If issues persist after following all steps, provide:
+
+1. Backend logs:
+   pm2 logs stromwater-backend --lines 100 > backend-logs.txt
+
+2. Database check:
+   sudo -u postgres psql -d stromwater_db << 'EOF' > db-check.txt
+   \dt
+   SELECT COUNT(*) FROM alerts;
+   SELECT COUNT(*) FROM device_data;
+   SELECT * FROM alerts LIMIT 3;
+   EOF
+
+3. PM2 status:
+   pm2 status
+
+4. Browser console errors:
+   • Open browser (F12)
+   • Go to Console tab
+   • Copy any red errors
+
+5. Frontend build output:
+   cd /var/www/stromwater/frontend
+   npm run build 2>&1 | tail -50
+
+
+================================================================================
+🎉 AFTER SUCCESSFUL DEPLOYMENT
+================================================================================
+
+Your StromWater IoT Dashboard now has:
+✅ Working Alerts page with alert management
+✅ Working Analytics page with device statistics
+✅ Robust error handling
+✅ Proper data validation
+✅ Better user experience
+
+Next steps:
+• Keep MQTT simulator running to collect real data
+• Monitor alerts in real-time
+• Use Analytics to track pump performance
+• Add more devices as needed

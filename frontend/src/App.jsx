@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import Alerts from './pages/Alerts';
 import Analytics from './pages/Analytics';
+import Devices from './pages/Devices';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Layout from './components/Layout';
@@ -52,7 +53,14 @@ function AppRoutes() {
         <Route path="device/:deviceId" element={<DeviceDetail />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="analytics" element={<Analytics />} />
-        <Route path="settings" element={<Settings />} />
+        <Route
+          path="devices"
+          element={
+            <AdminRoute>
+              <Devices />
+            </AdminRoute>
+          }
+        />
         <Route
           path="users"
           element={
@@ -61,6 +69,7 @@ function AppRoutes() {
             </AdminRoute>
           }
         />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );

@@ -40,6 +40,6 @@ if not exist "node_modules\mqtt" (
 REM Run the simulator
 echo Starting simulator...
 echo.
-node test-mqtt-both-devices.js
+node bothfiles.js
 
 pause
