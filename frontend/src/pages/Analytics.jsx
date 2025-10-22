@@ -60,7 +60,25 @@ const Analytics = () => {
         endDate: endDate.toISOString(),
       });
 
-      const data = response.data;
+      // Handle different response formats
+      let data = response.data;
+
+      // If data is an object with a data property, extract it
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        if (data.data && Array.isArray(data.data)) {
+          data = data.data;
+        } else if (data.readings && Array.isArray(data.readings)) {
+          data = data.readings;
+        } else {
+          // If it's an object but not an array, convert to empty array
+          data = [];
+        }
+      }
+
+      // Ensure data is an array
+      if (!Array.isArray(data)) {
+        data = [];
+      }
 
       // Calculate analytics
       const analytics = calculateAnalytics(data);
@@ -74,7 +92,8 @@ const Analytics = () => {
   };
 
   const calculateAnalytics = (data) => {
-    if (!data || data.length === 0) {
+    // Ensure data is an array and has elements
+    if (!data || !Array.isArray(data) || data.length === 0) {
       return {
         totalReadings: 0,
         avgHydrostatic: 0,
