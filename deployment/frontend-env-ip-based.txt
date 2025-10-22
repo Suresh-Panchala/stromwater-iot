@@ -1,0 +1,15 @@
+# Frontend Environment for IP-Based Deployment
+# Create this file at: /var/www/stromwater/frontend/.env
+
+# Replace YOUR_VPS_IP with your actual VPS IP address
+VITE_API_URL=http://YOUR_VPS_IP/api
+VITE_WS_URL=ws://YOUR_VPS_IP/ws
+
+# Example with actual IP:
+# VITE_API_URL=http://123.45.67.89/api
+# VITE_WS_URL=ws://123.45.67.89/ws
+
+# After creating this file, run:
+# cd /var/www/stromwater/frontend
+# npm run build
+# pm2 restart stromwater-frontend

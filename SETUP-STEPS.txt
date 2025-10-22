@@ -1,0 +1,196 @@
+================================================================================
+  STROMWATER - SETUP STEPS (Follow These Exactly)
+================================================================================
+
+✅ COMPLETED SO FAR:
+  - PostgreSQL installed (password: root)
+  - Mosquitto installed
+  - Backend dependencies installed (npm packages)
+  - Frontend dependencies installed (npm packages)
+  - .env files created
+
+================================================================================
+STEP 1: Create PostgreSQL Database
+================================================================================
+
+1. Open Command Prompt
+2. Run this command:
+
+   create-database.bat
+
+3. You should see:
+   [OK] Database created
+   [OK] User created
+   [SUCCESS] Database is ready!
+
+If you see errors, manually run these SQL commands:
+
+   psql -U postgres
+   (Password: root)
+
+   Then run these one by one:
+   CREATE DATABASE stromwater_db;
+   CREATE USER stromwater_user WITH ENCRYPTED PASSWORD 'stromwater123';
+   GRANT ALL PRIVILEGES ON DATABASE stromwater_db TO stromwater_user;
+   ALTER DATABASE stromwater_db OWNER TO stromwater_user;
+   \q
+
+================================================================================
+STEP 2: Configure Mosquitto
+================================================================================
+
+1. Open Command Prompt as Administrator
+   (Right-click Command Prompt → Run as administrator)
+
+2. Run:
+   setup-mosquitto.bat
+
+3. You should see:
+   [OK] Password file created
+   [OK] Configuration updated
+   [OK] Mosquitto service restarted
+   [OK] MQTT broker is configured and working!
+
+================================================================================
+STEP 3: Initialize Database Schema
+================================================================================
+
+1. Open Command Prompt
+2. Navigate to backend folder:
+
+   cd C:\Users\UniqueEmbedded\Desktop\IIOT\SHARJ\backend
+
+3. Run:
+
+   npm run init-db
+
+4. You should see:
+   Database initialized successfully!
+   Default admin credentials:
+     Username: admin
+     Password: admin123
+
+================================================================================
+STEP 4: Start Backend Server
+================================================================================
+
+1. Double-click: start-backend.bat
+
+2. Wait for these messages:
+   ✓ Server running on http://0.0.0.0:5000
+   ✓ Database connected successfully
+   ✓ Connected to MQTT broker successfully
+   ✓ WebSocket server initialized
+
+3. KEEP THIS WINDOW OPEN!
+
+================================================================================
+STEP 5: Start Frontend Dashboard
+================================================================================
+
+1. Double-click: start-frontend.bat
+
+2. Wait for:
+   ✓ VITE v5.x.x ready
+   ✓ Local: http://localhost:3000/
+
+3. KEEP THIS WINDOW OPEN!
+
+================================================================================
+STEP 6: Start Device Simulator
+================================================================================
+
+1. Double-click: start-simulator.bat
+
+2. You should see:
+   ✓ Connected to MQTT broker
+   ✓ Publishing data...
+   ✓ Hydrostatic: XX.X
+   ✓ Pump 1: ON/OFF
+   ✓ Pump 2: ON/OFF
+
+3. KEEP THIS WINDOW OPEN!
+
+================================================================================
+STEP 7: Open Dashboard
+================================================================================
+
+1. Open browser (Chrome, Edge, Firefox)
+2. Go to: http://localhost:3000
+
+3. Login:
+   Username: admin
+   Password: admin123
+
+4. You should see:
+   ✓ Water tank animation
+   ✓ Pump status cards
+   ✓ Real-time charts
+   ✓ Device location map
+   ✓ Green "Live" indicator
+   ✓ Data updating every 5 seconds
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEM: create-database.bat fails
+SOLUTION: Make sure PostgreSQL is running
+  - Press Win+R → services.msc
+  - Find "postgresql-x64-XX"
+  - Status should be "Running"
+  - If not, right-click → Start
+
+PROBLEM: setup-mosquitto.bat fails
+SOLUTION: Run as Administrator
+  - Right-click setup-mosquitto.bat
+  - Select "Run as administrator"
+
+PROBLEM: npm run init-db fails with "connection refused"
+SOLUTION: Database doesn't exist yet
+  - Run create-database.bat first
+  - Then try npm run init-db again
+
+PROBLEM: Backend shows "MQTT connection error"
+SOLUTION: Mosquitto not configured
+  - Run setup-mosquitto.bat as Administrator
+  - Check Mosquitto service is running
+
+PROBLEM: Frontend shows blank page
+SOLUTION: Backend not running
+  - Make sure backend shows "Server running..."
+  - Check http://localhost:5000/health in browser
+  - Should return: {"status":"OK",...}
+
+PROBLEM: No data in dashboard
+SOLUTION: Simulator not running
+  - Make sure start-simulator.bat is running
+  - Check backend console for "Received message from topic..."
+
+================================================================================
+CURRENT STATUS
+================================================================================
+
+✅ PostgreSQL installed
+✅ Mosquitto installed
+✅ Dependencies installed
+✅ .env files created
+⬜ Database needs to be created        ← Run create-database.bat
+⬜ Mosquitto needs configuration      ← Run setup-mosquitto.bat (Admin)
+⬜ Database schema needs initialization ← Run npm run init-db
+⬜ Start backend                      ← Run start-backend.bat
+⬜ Start frontend                     ← Run start-frontend.bat
+⬜ Start simulator                    ← Run start-simulator.bat
+⬜ Test dashboard                     ← http://localhost:3000
+
+================================================================================
+NEXT ACTION: Run create-database.bat
+================================================================================
+
+Open Command Prompt and run:
+  cd C:\Users\UniqueEmbedded\Desktop\IIOT\SHARJ
+  create-database.bat
+
+Then proceed to Step 2!
+
+================================================================================

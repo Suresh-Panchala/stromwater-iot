@@ -1,0 +1,79 @@
+================================================================================
+  FIX: Dashboard Shows "No device data available"
+================================================================================
+
+PROBLEM: You can login, but after login the dashboard shows:
+  "No device data available"
+
+CAUSE: There's no device or device data in the database yet.
+       The MQTT simulator needs to be running to generate data.
+
+================================================================================
+SOLUTION: Start the MQTT Simulator
+================================================================================
+
+Option 1: Quick Start (Recommended)
+------------------------------------
+1. Double-click: start-simulator.bat
+2. Leave it running (don't close the window)
+3. Refresh the dashboard page (F5 in browser)
+4. Dashboard will load with data!
+
+Option 2: Manual Device Creation
+---------------------------------
+If simulator doesn't work, manually add a device:
+
+1. Open Command Prompt
+2. Run:
+   cd C:\Users\UniqueEmbedded\Desktop\IIOT\SHARJ\backend
+   npm run init-db
+
+This re-initializes the database and adds the sample device.
+
+3. Then start simulator: start-simulator.bat
+
+================================================================================
+VERIFY IT'S WORKING
+================================================================================
+
+Simulator terminal should show:
+  ✓ Connected to MQTT broker
+  ✓ Publishing data...
+  ✓ Published to devices/StromWater_Device_1/data
+  ✓ Hydrostatic: XX.X
+  ✓ Pump 1: ON/OFF
+  ✓ Pump 2: ON/OFF
+
+Backend terminal should show:
+  ✓ Received message from topic: devices/StromWater_Device_1/data
+  ✓ Data stored successfully for device: StromWater_Device_1
+
+Dashboard (after refresh) should show:
+  ✓ Water tank with level
+  ✓ Pump 1 and Pump 2 cards
+  ✓ Charts with data
+  ✓ Map with location
+  ✓ Green "Live" indicator
+
+================================================================================
+CURRENT STATUS
+================================================================================
+
+✅ Backend running
+✅ Frontend running
+✅ Database created
+✅ Login works
+✅ Dashboard page loads
+❌ No device data yet ← Need to fix this!
+
+================================================================================
+ACTION NOW
+================================================================================
+
+Double-click: start-simulator.bat
+
+Keep it running, then refresh your browser (F5)
+
+The dashboard will come alive with real-time data! 🎉
+
+================================================================================

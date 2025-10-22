@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(dir:*)",
+      "Bash(cmd /c \"DOWNLOAD-INSTALLERS.bat\")",
+      "Bash(psql:*)",
+      "Bash(npm install:*)",
+      "Bash(if not exist .env copy .env.example .env)",
+      "Bash(set:*)",
+      "Bash(curl:*)",
+      "Bash(cmd /c \"set PGPASSWORD=root&& psql -U postgres -d stromwater_db -c \"\"\\d device_data\"\"\")",
+      "Bash(node:*)",
+      "Bash(cmd /c \"set PGPASSWORD=root&& psql -U postgres -d stromwater_db -c \"\"SELECT id, username, email, role, is_active FROM users;\"\"\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

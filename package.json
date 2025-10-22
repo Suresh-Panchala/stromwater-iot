@@ -1,0 +1,26 @@
+{
+  "name": "stromwater-iot-platform",
+  "version": "1.0.0",
+  "description": "Modern IoT monitoring platform for StromWater pump stations",
+  "main": "test-mqtt.js",
+  "scripts": {
+    "test:mqtt": "node test-mqtt.js",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "iot",
+    "mqtt",
+    "monitoring",
+    "react",
+    "nodejs",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "mqtt": "^5.3.0"
+  }
+}
