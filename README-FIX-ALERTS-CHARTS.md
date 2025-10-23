@@ -96,11 +96,12 @@ Run this SQL:
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS threshold_value DECIMAL;
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS actual_value DECIMAL;
 
-INSERT INTO alerts (device_id, type, severity, message, threshold_value, actual_value, acknowledged, created_at)
+-- IMPORTANT: Use alert_type, alert_message, timestamp (NOT type, message, created_at)
+INSERT INTO alerts (device_id, alert_type, alert_message, severity, timestamp, threshold_value, actual_value, acknowledged)
 VALUES
-('StromWater_Device_1', 'water_level', 'warning', 'Water level approaching threshold', 7.0, 7.5, false, NOW() - INTERVAL '30 minutes'),
-('StromWater_Device_2', 'voltage', 'critical', 'Voltage out of range', 440.0, 450.0, false, NOW() - INTERVAL '15 minutes'),
-('StromWater_Device_1', 'current', 'warning', 'Current fluctuation detected', 40.0, 42.0, false, NOW() - INTERVAL '10 minutes');
+('StromWater_Device_1', 'water_level', 'Water level approaching threshold', 'warning', NOW() - INTERVAL '30 minutes', 7.0, 7.5, false),
+('StromWater_Device_2', 'voltage', 'Voltage out of range', 'critical', NOW() - INTERVAL '15 minutes', 440.0, 450.0, false),
+('StromWater_Device_1', 'current', 'Current fluctuation detected', 'warning', NOW() - INTERVAL '10 minutes', 40.0, 42.0, false);
 
 \q
 ```
