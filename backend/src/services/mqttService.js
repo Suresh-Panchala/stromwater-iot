@@ -59,7 +59,7 @@ class MQTTService {
     this.client.on('message', async (topic, message) => {
       try {
         const data = JSON.parse(message.toString());
-        logger.info('Received message from topic:', topic);
+        logger.info('Received data for device:', data.device_id);
         await this.handleDeviceData(data);
       } catch (error) {
         logger.error('Error processing MQTT message:', error);
@@ -91,91 +91,63 @@ class MQTTService {
     const client = await pool.connect();
 
     try {
-      // Update device last_seen
+      // Update or create device record
       await client.query(
-        `INSERT INTO devices (device_id, location, last_seen)
-         VALUES ($1, $2, NOW())
+        `INSERT INTO devices (device_id, device_name, location, last_seen, is_active)
+         VALUES ($1, $2, $3, NOW(), true)
          ON CONFLICT (device_id)
-         DO UPDATE SET location = $2, last_seen = NOW()`,
-        [data.deviceId, data.location]
+         DO UPDATE SET device_name = $2, location = $3, last_seen = NOW()`,
+        [data.device_id, data.device_name || data.device_id, data.location || 'Unknown']
       );
 
-      // Insert device data (created_at has DEFAULT so not included)
+      // Insert device data - matching VPS schema
       const insertQuery = `
         INSERT INTO device_data (
-          device_id, location, timestamp,
-          hydrostatic_value, dry_run_alert, high_level_float_alert,
-          pump_1_manual, pump_2_manual, pump_1_auto, pump_2_auto,
-          pump_1_protection, pump_2_protection,
-          pump_1_contactor_feedback, pump_2_contactor_feedback,
-          power_1_r, power_1_y, power_1_b,
-          irms_1_r, irms_1_y, irms_1_b,
-          power_2_r, power_2_y, power_2_b,
-          irms_2_r, irms_2_y, irms_2_b,
+          device_id, timestamp,
+          hydrostatic_value,
           vrms_1_r, vrms_1_y, vrms_1_b,
           vrms_2_r, vrms_2_y, vrms_2_b,
-          vahr_1_r, vahr_1_y, vahr_1_b,
-          vahr_2_r, vahr_2_y, vahr_2_b,
-          freq_1_r, freq_1_y, freq_1_b,
-          freq_2_r, freq_2_y, freq_2_b,
-          rhs_1, rhs_2, raw_json
+          irms_1_r, irms_1_y, irms_1_b,
+          irms_2_r, irms_2_y, irms_2_b,
+          pump_1_status,
+          pump_2_status,
+          frequency,
+          temperature,
+          dry_run_alert,
+          high_level_float_alert,
+          pump_1_protection,
+          pump_2_protection
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-          $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-          $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-          $41, $42, $43, $44, $45, $46, $47
-        ) RETURNING id
+          $1, $2, $3, $4, $5, $6, $7, $8, $9,
+          $10, $11, $12, $13, $14, $15, $16, $17,
+          $18, $19, $20, $21, $22, $23
+        )
       `;
 
       const values = [
-        data.deviceId,
-        data.location,
-        data.timestamp,
-        data.data.Hydrostatic_Value,
-        data.data.DryRunAlert,
-        data.data.HighLevelFloatAlert,
-        data.data.Pump_1_Manual,
-        data.data.Pump_2_Manual,
-        data.data.Pump_1_Auto,
-        data.data.Pump_2_Auto,
-        data.data.Pump_1_Protection,
-        data.data.Pump_2_Protection,
-        data.data.Pump_1_Contactor_Feedback,
-        data.data.Pump_2_Contactor_Feedback,
-        data.data.POWER_1_R,
-        data.data.POWER_1_Y,
-        data.data.POWER_1_B,
-        data.data.IRMS_1_R,
-        data.data.IRMS_1_Y,
-        data.data.IRMS_1_B,
-        data.data.POWER_2_R,
-        data.data.POWER_2_Y,
-        data.data.POWER_2_B,
-        data.data.IRMS_2_R,
-        data.data.IRMS_2_Y,
-        data.data.IRMS_2_B,
-        data.data.VRMS_1_R,
-        data.data.VRMS_1_Y,
-        data.data.VRMS_1_B,
-        data.data.VRMS_2_R,
-        data.data.VRMS_2_Y,
-        data.data.VRMS_2_B,
-        data.data.VAHR_1_R,
-        data.data.VAHR_1_Y,
-        data.data.VAHR_1_B,
-        data.data.VAHR_2_R,
-        data.data.VAHR_2_Y,
-        data.data.VAHR_2_B,
-        data.data.FREQ_1_R,
-        data.data.FREQ_1_Y,
-        data.data.FREQ_1_B,
-        data.data.FREQ_2_R,
-        data.data.FREQ_2_Y,
-        data.data.FREQ_2_B,
-        data.data.RHS_1,
-        data.data.RHS_2,
-        JSON.stringify(data)
+        data.device_id,
+        data.timestamp || new Date().toISOString(),
+        data.hydrostatic_value || 0,
+        data.vrms_1_r || 0,
+        data.vrms_1_y || 0,
+        data.vrms_1_b || 0,
+        data.vrms_2_r || 0,
+        data.vrms_2_y || 0,
+        data.vrms_2_b || 0,
+        data.irms_1_r || 0,
+        data.irms_1_y || 0,
+        data.irms_1_b || 0,
+        data.irms_2_r || 0,
+        data.irms_2_y || 0,
+        data.irms_2_b || 0,
+        data.pump_1_status || 'OFF',
+        data.pump_2_status || 'OFF',
+        data.frequency || 50,
+        data.temperature || 0,
+        data.dry_run_alert || 0,
+        data.high_level_float_alert || 0,
+        data.pump_1_protection || 0,
+        data.pump_2_protection || 0
       ];
 
       await client.query(insertQuery, values);
@@ -183,9 +155,10 @@ class MQTTService {
       // Check for alerts
       await this.checkAlerts(data);
 
-      logger.info(`Data stored successfully for device: ${data.deviceId}`);
+      logger.info(`✓ Data stored successfully for device: ${data.device_id}`);
     } catch (error) {
-      logger.error('Error storing device data:', error);
+      logger.error('Error storing device data:', error.message);
+      logger.error('Error details:', error);
       throw error;
     } finally {
       client.release();
@@ -196,71 +169,83 @@ class MQTTService {
     const alerts = [];
 
     // Check for Dry Run Alert
-    if (data.data.DryRunAlert === 1) {
+    if (data.dry_run_alert === 1) {
       alerts.push({
-        device_id: data.deviceId,
-        alert_type: 'DRY_RUN',
-        alert_message: 'Dry run condition detected on pump',
+        device_id: data.device_id,
+        alert_type: 'dry_run',
+        message: 'Dry run condition detected on pump',
         severity: 'critical',
-        timestamp: data.timestamp
+        timestamp: data.timestamp || new Date().toISOString()
       });
     }
 
     // Check for High Level Float Alert
-    if (data.data.HighLevelFloatAlert === 1) {
+    if (data.high_level_float_alert === 1) {
       alerts.push({
-        device_id: data.deviceId,
-        alert_type: 'HIGH_LEVEL',
-        alert_message: 'High water level detected',
+        device_id: data.device_id,
+        alert_type: 'high_water_level',
+        message: 'High water level detected',
         severity: 'warning',
-        timestamp: data.timestamp
+        timestamp: data.timestamp || new Date().toISOString()
       });
     }
 
     // Check for pump protection
-    if (data.data.Pump_1_Protection === 1) {
+    if (data.pump_1_protection === 1) {
       alerts.push({
-        device_id: data.deviceId,
-        alert_type: 'PUMP_PROTECTION',
-        alert_message: 'Pump 1 protection activated',
+        device_id: data.device_id,
+        alert_type: 'pump_protection',
+        message: 'Pump 1 protection activated',
         severity: 'critical',
-        timestamp: data.timestamp
+        timestamp: data.timestamp || new Date().toISOString()
       });
     }
 
-    if (data.data.Pump_2_Protection === 1) {
+    if (data.pump_2_protection === 1) {
       alerts.push({
-        device_id: data.deviceId,
-        alert_type: 'PUMP_PROTECTION',
-        alert_message: 'Pump 2 protection activated',
+        device_id: data.device_id,
+        alert_type: 'pump_protection',
+        message: 'Pump 2 protection activated',
         severity: 'critical',
-        timestamp: data.timestamp
+        timestamp: data.timestamp || new Date().toISOString()
       });
     }
 
-    // Check voltage anomalies (±10% from 230V)
+    // Check voltage anomalies (±10% from 400V for 3-phase)
     const voltages = [
-      data.data.VRMS_1_R, data.data.VRMS_1_Y, data.data.VRMS_1_B,
-      data.data.VRMS_2_R, data.data.VRMS_2_Y, data.data.VRMS_2_B
+      { val: data.vrms_1_r, pump: 1, phase: 'R' },
+      { val: data.vrms_1_y, pump: 1, phase: 'Y' },
+      { val: data.vrms_1_b, pump: 1, phase: 'B' },
+      { val: data.vrms_2_r, pump: 2, phase: 'R' },
+      { val: data.vrms_2_y, pump: 2, phase: 'Y' },
+      { val: data.vrms_2_b, pump: 2, phase: 'B' }
     ];
 
-    voltages.forEach((voltage, index) => {
-      if (voltage < 207 || voltage > 253) {
-        const pumpNum = index < 3 ? 1 : 2;
-        const phase = ['R', 'Y', 'B'][index % 3];
+    voltages.forEach(v => {
+      if (v.val && (v.val < 360 || v.val > 440)) {
         alerts.push({
-          device_id: data.deviceId,
-          alert_type: 'VOLTAGE_ANOMALY',
-          alert_message: `Pump ${pumpNum} Phase ${phase}: Voltage out of range (${voltage}V)`,
+          device_id: data.device_id,
+          alert_type: 'voltage_abnormal',
+          message: `Pump ${v.pump} Phase ${v.phase}: Voltage out of range (${v.val}V)`,
           severity: 'warning',
-          timestamp: data.timestamp
+          timestamp: data.timestamp || new Date().toISOString(),
+          threshold_value: 400,
+          actual_value: v.val
         });
       }
     });
 
-    // Store alerts and send notifications
+    // Store alerts
     for (const alert of alerts) {
-      await alertService.createAlert(alert);
+      try {
+        await alertService.createAlert(alert);
+      } catch (error) {
+        logger.error('Error creating alert:', error.message);
+      }
+    }
+
+    if (alerts.length > 0) {
+      logger.info(`Generated ${alerts.length} alerts for device ${data.device_id}`);
     }
   }
 

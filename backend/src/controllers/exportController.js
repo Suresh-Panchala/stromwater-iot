@@ -30,15 +30,15 @@ exports.exportCSV = async (req, res) => {
     const fields = [
       'timestamp',
       'hydrostatic_value',
-      'pump_1_contactor_feedback',
-      'pump_2_contactor_feedback',
+      'pump_1_status',
+      'pump_2_status',
       'vrms_1_r',
       'vrms_1_y',
       'vrms_1_b',
       'irms_1_r',
       'irms_1_y',
       'irms_1_b',
-      'freq_1_r'
+      'frequency'
     ];
 
     const parser = new Parser({ fields });
@@ -135,11 +135,11 @@ exports.exportPDF = async (req, res) => {
         minute: '2-digit'
       });
       const level = Number(row.hydrostatic_value || 0).toFixed(1);
-      const p1 = row.pump_1_contactor_feedback ? 'ON' : 'OFF';
-      const p2 = row.pump_2_contactor_feedback ? 'ON' : 'OFF';
+      const p1 = row.pump_1_status === 'ON' ? 'ON' : 'OFF';
+      const p2 = row.pump_2_status === 'ON' ? 'ON' : 'OFF';
       const voltage = `${Math.round(Number(row.vrms_1_r) || 0)}/${Math.round(Number(row.vrms_1_y) || 0)}/${Math.round(Number(row.vrms_1_b) || 0)}`;
       const current = `${Number(row.irms_1_r || 0).toFixed(1)}/${Number(row.irms_1_y || 0).toFixed(1)}/${Number(row.irms_1_b || 0).toFixed(1)}`;
-      const freq = Number(row.freq_1_r || 0).toFixed(1);
+      const freq = Number(row.frequency || 0).toFixed(1);
 
       doc.fontSize(7).fillColor('black');
       doc.text(time, 45, currentY + 5, { width: 60 });

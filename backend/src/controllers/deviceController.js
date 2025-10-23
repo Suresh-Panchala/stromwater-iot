@@ -123,15 +123,15 @@ exports.getHistoricalData = async (req, res) => {
       `SELECT
          timestamp,
          hydrostatic_value,
-         pump_1_contactor_feedback,
-         pump_2_contactor_feedback,
+         pump_1_status,
+         pump_2_status,
          power_1_r, power_1_y, power_1_b,
          power_2_r, power_2_y, power_2_b,
          vrms_1_r, vrms_1_y, vrms_1_b,
          vrms_2_r, vrms_2_y, vrms_2_b,
          irms_1_r, irms_1_y, irms_1_b,
          irms_2_r, irms_2_y, irms_2_b,
-         freq_1_r, freq_2_r
+         frequency
        FROM device_data
        WHERE device_id = $1
        AND timestamp > NOW() - INTERVAL '${parseInt(hours)} hours'
@@ -262,13 +262,13 @@ exports.exportDataPDF = async (req, res) => {
         // Prepare data
         const time = new Date(row.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const level = (row.hydrostatic_value || 0).toFixed(1);
-        const p1 = row.pump_1_contactor_feedback ? 'ON' : 'OFF';
-        const p2 = row.pump_2_contactor_feedback ? 'ON' : 'OFF';
+        const p1 = row.pump_1_status === 'ON' ? 'ON' : 'OFF';
+        const p2 = row.pump_2_status === 'ON' ? 'ON' : 'OFF';
         const v1 = `${Math.round(row.vrms_1_r || 0)}/${Math.round(row.vrms_1_y || 0)}/${Math.round(row.vrms_1_b || 0)}`;
         const v2 = `${Math.round(row.vrms_2_r || 0)}/${Math.round(row.vrms_2_y || 0)}/${Math.round(row.vrms_2_b || 0)}`;
         const i1 = `${(row.irms_1_r || 0).toFixed(1)}/${(row.irms_1_y || 0).toFixed(1)}/${(row.irms_1_b || 0).toFixed(1)}`;
         const i2 = `${(row.irms_2_r || 0).toFixed(1)}/${(row.irms_2_y || 0).toFixed(1)}/${(row.irms_2_b || 0).toFixed(1)}`;
-        const freq = (row.freq_1_r || 0).toFixed(1);
+        const freq = (row.frequency || 0).toFixed(1);
 
         const rowData = [time, level, p1, p2, v1, v2, i1, i2, freq];
 
@@ -337,8 +337,8 @@ exports.getDeviceStats = async (req, res) => {
          MAX(hydrostatic_value) as max_hydrostatic,
          MIN(hydrostatic_value) as min_hydrostatic,
          AVG(vrms_1_r) as avg_voltage,
-         SUM(CASE WHEN pump_1_contactor_feedback = 1 THEN 1 ELSE 0 END) as pump_1_on_count,
-         SUM(CASE WHEN pump_2_contactor_feedback = 1 THEN 1 ELSE 0 END) as pump_2_on_count,
+         SUM(CASE WHEN pump_1_status = 'ON' THEN 1 ELSE 0 END) as pump_1_on_count,
+         SUM(CASE WHEN pump_2_status = 'ON' THEN 1 ELSE 0 END) as pump_2_on_count,
          SUM(CASE WHEN dry_run_alert = 1 THEN 1 ELSE 0 END) as dry_run_count,
          SUM(CASE WHEN high_level_float_alert = 1 THEN 1 ELSE 0 END) as high_level_count
        FROM device_data
